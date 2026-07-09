@@ -7,6 +7,7 @@ import { EditorTabs } from './components/Tabs/EditorTabs';
 import { QueryToolbar } from './components/Toolbar/QueryToolbar';
 import { SqlEditor } from './components/Editor/SqlEditor';
 import { ResultsPanel } from './components/Results/ResultsPanel';
+import { SchemaExplorer } from './components/SchemaExplorer/SchemaExplorer';
 import { X } from 'lucide-react';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
   const errorBanner = useAppStore((s) => s.errorBanner);
   const setErrorBanner = useAppStore((s) => s.setErrorBanner);
   const theme = useThemeStore((s) => s.theme);
+  const workspaceMode = useAppStore((s) => s.workspaceMode);
   const splitRef = useRef<HTMLDivElement>(null);
   const [editorRatio, setEditorRatio] = useState(0.5);
   const dragging = useRef(false);
@@ -73,28 +75,34 @@ export default function App() {
       <div className="main">
         <Sidebar />
         <div className="workspace">
-          <EditorTabs />
-          <QueryToolbar />
-          <div
-            className="split"
-            ref={splitRef}
-            style={{
-              gridTemplateRows: `minmax(120px, ${editorRatio}fr) 6px minmax(120px, ${1 - editorRatio}fr)`,
-            }}
-          >
-            <div className="editor-pane">
-              <SqlEditor />
-            </div>
-            <div
-              className="resize-handle"
-              onMouseDown={() => {
-                dragging.current = true;
-                document.body.style.cursor = 'row-resize';
-                document.body.style.userSelect = 'none';
-              }}
-            />
-            <ResultsPanel />
-          </div>
+          {workspaceMode === 'explorer' ? (
+            <SchemaExplorer />
+          ) : (
+            <>
+              <EditorTabs />
+              <QueryToolbar />
+              <div
+                className="split"
+                ref={splitRef}
+                style={{
+                  gridTemplateRows: `minmax(120px, ${editorRatio}fr) 6px minmax(120px, ${1 - editorRatio}fr)`,
+                }}
+              >
+                <div className="editor-pane">
+                  <SqlEditor />
+                </div>
+                <div
+                  className="resize-handle"
+                  onMouseDown={() => {
+                    dragging.current = true;
+                    document.body.style.cursor = 'row-resize';
+                    document.body.style.userSelect = 'none';
+                  }}
+                />
+                <ResultsPanel />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import connectionsRouter from './routes/connections.js';
 import queryRouter from './routes/query.js';
 import historyRouter from './routes/history.js';
+import schemaRouter from './routes/schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/api/connections', connectionsRouter);
   app.use('/api/query', queryRouter);
   app.use('/api/history', historyRouter);
+  app.use('/api/schema', schemaRouter);
 
   // Production / Docker: serve the Vite build from ../frontend/dist
   if (process.env.SERVE_STATIC === 'true') {

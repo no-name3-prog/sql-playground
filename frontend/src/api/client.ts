@@ -6,6 +6,8 @@ import type {
   OptimizationReport,
   QueryAnalysis,
   SchemaInfo,
+  SchemaCatalog,
+  ObjectDetails,
 } from '../types';
 
 const BASE = '/api';
@@ -71,6 +73,14 @@ export const api = {
 
   getSchema: (connectionId: string) =>
     request<{ schema: SchemaInfo }>(`/query/schema/${connectionId}`).then((r) => r.schema),
+
+  getCatalog: (connectionId: string) =>
+    request<{ catalog: SchemaCatalog }>(`/schema/${connectionId}/catalog`).then((r) => r.catalog),
+
+  getObjectDetails: (connectionId: string, name: string, kind: 'table' | 'view' = 'table') =>
+    request<{ details: ObjectDetails }>(
+      `/schema/${connectionId}/objects/${encodeURIComponent(name)}?kind=${kind}`
+    ).then((r) => r.details),
 
   getHistory: (limit = 50) =>
     request<{ history: HistoryEntry[] }>(`/history?limit=${limit}`).then((r) => r.history),
