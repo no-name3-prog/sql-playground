@@ -127,3 +127,22 @@ Use clear, complete sentences in commit messages (what + why).
 - Prefer small, reviewable PRs
 - Do not commit `node_modules`, built `dist/`, or secrets
 - Keep sample seed data deterministic for tests
+
+## Email notifications (CI / PR failures)
+
+GitHub emails for failed Actions runs are controlled by **your account**, not the workflow file. To stop emails when a PR check fails:
+
+1. Open **[Notification settings](https://github.com/settings/notifications)**
+2. Scroll to **Actions**
+3. Under **Email**, **uncheck** the Actions email option  
+   (or choose not to receive “failed workflows” mail if that sub-option is shown)
+4. Click **Save** if prompted
+
+Optional (less noise overall for this repo):
+
+1. Open the repo → **Watch** (top right) → **Participating and @mentions**  
+   (avoid **All Activity**)
+
+You will still see red ❌ checks on the PR page and in the Actions tab; only the **email** is turned off.
+
+> There is no repository YAML flag that can disable GitHub’s “workflow failed” emails for your account. That is always a personal notification preference.
