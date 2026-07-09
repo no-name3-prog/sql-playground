@@ -1,21 +1,26 @@
 name: CI
 
+# Auto-run on every PR (open / update / reopen) and on main pushes
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # One run per PR (or branch); cancel outdated pushes while iterating
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
-  # ─── Backend typecheck + unit/integration tests ─────────────────────────
+  # ─── Backend: typecheck + tests + build (always on PR) ───────────────────
   backend:
     name: Backend (typecheck · test · build)
     runs-on: ubuntu-latest
@@ -24,7 +29,7 @@ jobs:
         working-directory: backend
 
     steps:
-      - name: Checkout
+      - name: Checkout PR head
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -49,12 +54,31 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        id: test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/backend-test.log
+          # Extract node:test summary if present
+          if grep -q '# tests ' /tmp/backend-test.log; then
+            SUMMARY=$(grep -E '^# (tests|pass|fail|skipped) ' /tmp/backend-test.log | tr '\n' ' ')
+            echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
+          else
+            echo "summary=tests completed" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build
         run: npm run build
 
-  # ─── Frontend typecheck + production build ──────────────────────────────
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-log
+          path: /tmp/backend-test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ─── Frontend: typecheck + production build ─────────────────────────────
   frontend:
     name: Frontend (typecheck · build)
     runs-on: ubuntu-latest
@@ -63,7 +87,7 @@ jobs:
         working-directory: frontend
 
     steps:
-      - name: Checkout
+      - name: Checkout PR head
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -82,7 +106,7 @@ jobs:
       - name: Build
         run: npm run build
 
-  # ─── Dependency audit (non-blocking warnings) ───────────────────────────
+  # ─── Dependency audit (informational) ───────────────────────────────────
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
@@ -125,7 +149,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── Gate: all required checks must pass ────────────────────────────────
+  # ─── Required gate for branch protection ────────────────────────────────
   ci-success:
     name: All checks passed
     runs-on: ubuntu-latest
@@ -140,7 +164,107 @@ jobs:
           if [ "${{ needs.backend.result }}" != "success" ] \
             || [ "${{ needs.frontend.result }}" != "success" ] \
             || [ "${{ needs.docker.result }}" != "success" ]; then
-            echo "::error::One or more required CI jobs failed"
+            echo "::error::One or more required CI jobs failed — PR cannot be merged"
             exit 1
           fi
           echo "All required checks passed."
+
+  # ─── PR comment: auto test report (only on pull_request) ────────────────
+  pr-test-report:
+    name: PR test report
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, docker, ci-success]
+    if: github.event_name == 'pull_request' && always()
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Compose status
+        id: status
+        run: |
+          B="${{ needs.backend.result }}"
+          F="${{ needs.frontend.result }}"
+          D="${{ needs.docker.result }}"
+          G="${{ needs.ci-success.result }}"
+          if [ "$G" = "success" ]; then
+            echo "emoji=✅" >> "$GITHUB_OUTPUT"
+            echo "headline=All automated tests and checks passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "emoji=❌" >> "$GITHUB_OUTPUT"
+            echo "headline=Automated checks failed — fix before merge" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "body<<EOF"
+            echo "## ${{ steps.status.outputs.emoji || '🧪' }} CI auto-run (PR #${{ github.event.pull_request.number }})"
+            echo ""
+            echo "Tests and checks run **automatically** on every PR open/update."
+            echo ""
+            echo "| Check | Result |"
+            echo "|-------|--------|"
+            echo "| Backend typecheck · **test** · build | \`$B\` |"
+            echo "| Frontend typecheck · build | \`$F\` |"
+            echo "| Docker build | \`$D\` |"
+            echo "| **All checks passed** (merge gate) | \`$G\` |"
+            echo ""
+            echo "Commit: \`${{ github.event.pull_request.head.sha }}\`"
+            echo ""
+            echo "[View full run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const emoji = '${{ needs.ci-success.result }}' === 'success' ? '✅' : '❌';
+            const B = '${{ needs.backend.result }}';
+            const F = '${{ needs.frontend.result }}';
+            const D = '${{ needs.docker.result }}';
+            const G = '${{ needs.ci-success.result }}';
+            const headline = G === 'success'
+              ? 'All automated tests and checks passed'
+              : 'Automated checks failed — fix before merge';
+            const body = [
+              `## ${emoji} CI auto-run (PR #${{ github.event.pull_request.number }})`,
+              '',
+              `**${headline}**`,
+              '',
+              'Tests run **automatically** whenever this PR is opened or updated.',
+              '',
+              '| Check | Result |',
+              '|-------|--------|',
+              `| Backend typecheck · **test** · build | \`${B}\` |`,
+              `| Frontend typecheck · build | \`${F}\` |`,
+              `| Docker build | \`${D}\` |`,
+              `| **All checks passed** (merge gate) | \`${G}\` |`,
+              '',
+              `Commit: \`${{ github.event.pull_request.head.sha }}\``,
+              '',
+              `[View full run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`,
+              '',
+              '<!-- sql-playground-ci-report -->',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user?.type === 'Bot' && c.body?.includes('<!-- sql-playground-ci-report -->')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

@@ -348,7 +348,7 @@ Tips:
 
 ## Continuous Integration & quality gates
 
-Every push and pull request to `main` runs **GitHub Actions** (`.github/workflows/ci.yml`):
+Every **pull request** (opened or updated) and every push to `main` runs **GitHub Actions** automatically (`.github/workflows/ci.yml`):
 
 | Check | What runs |
 |-------|-----------|

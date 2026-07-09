@@ -85,6 +85,25 @@ npm run dev          # API :3001 · UI :5173
 - Recommendations must include `planReferences` to real plan nodes
 - Do not rely only on SQL string heuristics without plan evidence
 
+
+## Automatic tests on pull requests
+
+When you **open or update a PR**, GitHub Actions runs CI **automatically** (no manual step):
+
+1. Backend **typecheck + unit/integration tests + build**
+2. Frontend **typecheck + build**
+3. **Docker** production image build
+4. Aggregate gate **All checks passed** (required to merge)
+5. A **CI report comment** is posted/updated on the PR
+
+Triggers: `opened`, `synchronize` (new commits), `reopened`, `ready_for_review`.
+
+```bash
+git push -u origin HEAD
+gh pr create --fill    # CI starts immediately
+gh pr checks --watch   # optional: watch from terminal
+```
+
 ## CI (GitHub Actions)
 
 Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
