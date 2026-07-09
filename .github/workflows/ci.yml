@@ -179,39 +179,6 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - name: Compose status
-        id: status
-        run: |
-          B="${{ needs.backend.result }}"
-          F="${{ needs.frontend.result }}"
-          D="${{ needs.docker.result }}"
-          G="${{ needs.ci-success.result }}"
-          if [ "$G" = "success" ]; then
-            echo "emoji=✅" >> "$GITHUB_OUTPUT"
-            echo "headline=All automated tests and checks passed" >> "$GITHUB_OUTPUT"
-          else
-            echo "emoji=❌" >> "$GITHUB_OUTPUT"
-            echo "headline=Automated checks failed — fix before merge" >> "$GITHUB_OUTPUT"
-          fi
-          {
-            echo "body<<EOF"
-            echo "## ${{ steps.status.outputs.emoji || '🧪' }} CI auto-run (PR #${{ github.event.pull_request.number }})"
-            echo ""
-            echo "Tests and checks run **automatically** on every PR open/update."
-            echo ""
-            echo "| Check | Result |"
-            echo "|-------|--------|"
-            echo "| Backend typecheck · **test** · build | \`$B\` |"
-            echo "| Frontend typecheck · build | \`$F\` |"
-            echo "| Docker build | \`$D\` |"
-            echo "| **All checks passed** (merge gate) | \`$G\` |"
-            echo ""
-            echo "Commit: \`${{ github.event.pull_request.head.sha }}\`"
-            echo ""
-            echo "[View full run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Post or update PR comment
         uses: actions/github-script@v7
         with:
