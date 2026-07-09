@@ -106,6 +106,9 @@ jobs:
         run: |
           git fetch origin main:main || git fetch origin ${{ github.event.repository.default_branch }}:main
           git fetch origin ${{ steps.pr.outputs.head_sha }}
+          # Always use the maintainer script from main (PR branch may predate the bot)
+          git show main:.github/scripts/maintainer-review.mjs > /tmp/maintainer-review.mjs
+          chmod +x /tmp/maintainer-review.mjs
 
       - name: Run maintainer review
         id: review
@@ -114,7 +117,7 @@ jobs:
         env:
           BASE_SHA: main
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
-        run: node .github/scripts/maintainer-review.mjs
+        run: node /tmp/maintainer-review.mjs
 
       - name: Capture review outcome
         if: steps.pr.outputs.number != ''
