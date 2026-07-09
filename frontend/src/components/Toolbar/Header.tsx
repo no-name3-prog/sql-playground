@@ -1,9 +1,12 @@
-import { Database, Moon, Sun, Github } from 'lucide-react';
+import { Database, Moon, Sun, Github, Network } from 'lucide-react';
 import { useThemeStore } from '../../stores/themeStore';
+import { useAppStore } from '../../stores/appStore';
 
 export function Header() {
   const theme = useThemeStore((s) => s.theme);
   const toggle = useThemeStore((s) => s.toggle);
+  const workspaceMode = useAppStore((s) => s.workspaceMode);
+  const setWorkspaceMode = useAppStore((s) => s.setWorkspaceMode);
 
   return (
     <header className="header">
@@ -19,6 +22,16 @@ export function Header() {
         </span>
       </div>
       <div className="header-actions">
+        <button
+          className={`btn btn-sm ${workspaceMode === 'explorer' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() =>
+            setWorkspaceMode(workspaceMode === 'explorer' ? 'query' : 'explorer')
+          }
+          title="Interactive schema explorer"
+        >
+          <Network size={14} />
+          Schema
+        </button>
         <button
           className="btn-icon"
           onClick={toggle}

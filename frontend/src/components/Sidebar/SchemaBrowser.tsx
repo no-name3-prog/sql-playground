@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Table2, RefreshCw, Columns3 } from 'lucide-react';
+import { ChevronRight, Table2, RefreshCw, Columns3, Network } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 
 export function SchemaBrowser() {
@@ -8,6 +8,7 @@ export function SchemaBrowser() {
   const refreshSchema = useAppStore((s) => s.refreshSchema);
   const insertSnippet = useAppStore((s) => s.insertSnippet);
   const activeConnectionId = useAppStore((s) => s.activeConnectionId);
+  const setWorkspaceMode = useAppStore((s) => s.setWorkspaceMode);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   if (!activeConnectionId) {
@@ -44,9 +45,18 @@ export function SchemaBrowser() {
         <span>
           Tables · {schema.tables.length}
         </span>
-        <button className="btn-icon btn-sm" onClick={() => refreshSchema()} title="Refresh schema">
-          <RefreshCw size={12} />
-        </button>
+        <span style={{ display: 'flex', gap: 4 }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setWorkspaceMode('explorer')}
+            title="Interactive schema explorer"
+          >
+            <Network size={12} /> Graph
+          </button>
+          <button className="btn-icon btn-sm" onClick={() => refreshSchema()} title="Refresh schema">
+            <RefreshCw size={12} />
+          </button>
+        </span>
       </div>
 
       {schema.tables.map((table) => {

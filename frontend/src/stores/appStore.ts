@@ -56,11 +56,13 @@ interface AppState {
   activeTabId: string;
   history: HistoryEntry[];
   sidebarTab: 'schema' | 'history' | 'connections';
+  workspaceMode: 'query' | 'explorer';
   loadingConnections: boolean;
   errorBanner: string | null;
 
   init: () => Promise<void>;
   setSidebarTab: (t: 'schema' | 'history' | 'connections') => void;
+  setWorkspaceMode: (m: 'query' | 'explorer') => void;
   setActiveConnection: (id: string) => Promise<void>;
   refreshConnections: () => Promise<void>;
   refreshSchema: () => Promise<void>;
@@ -107,6 +109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeTabId: firstTabId,
   history: [],
   sidebarTab: 'schema',
+  workspaceMode: 'query',
   loadingConnections: true,
   errorBanner: null,
 
@@ -149,6 +152,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setSidebarTab: (sidebarTab) => set({ sidebarTab }),
+  setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
 
   setActiveConnection: async (id) => {
     set({ activeConnectionId: id });

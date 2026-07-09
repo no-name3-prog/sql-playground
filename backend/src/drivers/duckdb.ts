@@ -3,6 +3,8 @@ import path from 'node:path';
 import { BaseDriver, DEFAULT_MAX_ROWS } from './base.js';
 import type { ColumnMeta, QueryResult, SchemaInfo } from '../types/index.js';
 import type { RawExplainResult } from '../types/analysis.js';
+import type { ObjectDetails, SchemaCatalog } from '../types/schema.js';
+import { buildObjectDetails } from '../schema/objectDetails.js';
 
 function runQuery<T = unknown>(
   conn: duckdb.Connection,
@@ -158,6 +160,175 @@ export class DuckdbDriver extends BaseDriver {
     return { tables: result, engine: 'duckdb' };
   }
 
+
+  async getCatalog(): Promise<SchemaCatalog> {
+    if (!this.conn) await this.connect();
+    const { rows: tableRows } = await runQuery<{
+      table_name: string;
+      table_type: string;
+    }>(
+      this.conn!,
+      `SELECT table_name, table_type FROM information_schema.tables
+       WHERE table_schema = 'main'
+       ORDER BY table_type, table_name`
+    );
+
+    const objects: import('../types/schema.js').CatalogObject[] = [];
+    const foreignKeys: import('../types/schema.js').ForeignKeyMeta[] = [];
+    const indexes: import('../types/schema.js').IndexMeta[] = [];
+    const constraints: import('../types/schema.js').ConstraintMeta[] = [];
+
+    for (const t of tableRows) {
+      const kind = /view/i.test(t.table_type) ? 'view' : 'table';
+      const { rows: cols } = await runQuery<{
+        column_name: string;
+        data_type: string;
+        is_nullable: string;
+        column_default: string | null;
+        ordinal_position: number;
+      }>(
+        this.conn!,
+        `SELECT column_name, data_type, is_nullable, column_default, ordinal_position
+         FROM information_schema.columns
+         WHERE table_schema = 'main' AND table_name = '${t.table_name.replace(/'/g, "''")}'
+         ORDER BY ordinal_position`
+      );
+
+      // PKs via duckdb_constraints if available
+      let pkCols: string[] = [];
+      try {
+        const { rows: pks } = await runQuery<{ column_names: string[] | string }>(
+          this.conn!,
+          `SELECT constraint_column_names AS column_names FROM duckdb_constraints()
+           WHERE table_name = '${t.table_name.replace(/'/g, "''")}' AND constraint_type = 'PRIMARY KEY'`
+        );
+        if (pks[0]) {
+          const raw = pks[0].column_names;
+          pkCols = Array.isArray(raw) ? raw.map(String) : String(raw).replace(/[{}]/g, '').split(',').map((s) => s.trim()).filter(Boolean);
+        }
+      } catch {
+        /* optional */
+      }
+
+      const columns = cols.map((c) => ({
+        name: c.column_name,
+        type: c.data_type,
+        nullable: c.is_nullable === 'YES',
+        defaultValue: c.column_default,
+        isPrimaryKey: pkCols.includes(c.column_name),
+        ordinal: Number(c.ordinal_position),
+      }));
+
+      let rowCount: number | null = null;
+      try {
+        const { rows } = await runQuery<{ c: number }>(
+          this.conn!,
+          `SELECT COUNT(*) AS c FROM "${t.table_name.replace(/"/g, '""')}"`
+        );
+        rowCount = Number(rows[0]?.c);
+      } catch {
+        rowCount = null;
+      }
+
+      objects.push({
+        id: `${kind}:${t.table_name}`,
+        name: t.table_name,
+        kind: kind as 'table' | 'view',
+        columns,
+        rowCount,
+      });
+
+      if (pkCols.length) {
+        constraints.push({
+          id: `pk-${t.table_name}`,
+          name: `${t.table_name}_pkey`,
+          tableName: t.table_name,
+          type: 'PRIMARY KEY' as const,
+          columns: pkCols,
+        });
+      }
+    }
+
+    // Foreign keys via duckdb_constraints
+    try {
+      const { rows: fks } = await runQuery<Record<string, unknown>>(
+        this.conn!,
+        `SELECT * FROM duckdb_constraints() WHERE constraint_type = 'FOREIGN KEY'`
+      );
+      fks.forEach((row, i) => {
+        const table = String(row.table_name || '');
+        const refTable = String(row.referenced_table || row.referenced_table_name || '');
+        const fromCols = normalizeCols(row.constraint_column_names || row.column_names);
+        const toCols = normalizeCols(row.referenced_column_names || row.referenced_columns);
+        if (!table || !refTable) return;
+        const id = `fk-${table}-${i}`;
+        foreignKeys.push({
+          id,
+          name: String(row.constraint_name || id),
+          fromTable: table,
+          fromColumns: fromCols,
+          toTable: refTable,
+          toColumns: toCols,
+        });
+        constraints.push({
+          id: `cfk-${id}`,
+          name: String(row.constraint_name || id),
+          tableName: table,
+          type: 'FOREIGN KEY' as const,
+          columns: fromCols,
+        });
+      });
+    } catch {
+      /* no FK catalog */
+    }
+
+    // Indexes
+    try {
+      const { rows: idxs } = await runQuery<Record<string, unknown>>(
+        this.conn!,
+        `SELECT * FROM duckdb_indexes()`
+      );
+      idxs.forEach((row, i) => {
+        const tableName = String(row.table_name || '');
+        const name = String(row.index_name || `idx_${i}`);
+        indexes.push({
+          id: `idx-${name}`,
+          name,
+          tableName,
+          columns: normalizeCols(row.column_names || row.expressions),
+          unique: Boolean(row.is_unique || row.unique),
+          primary: Boolean(row.is_primary || row.primary),
+        });
+      });
+    } catch {
+      /* optional */
+    }
+
+    return {
+      engine: 'duckdb',
+      objects,
+      foreignKeys,
+      indexes,
+      constraints,
+      graph: this.buildGraph(objects, foreignKeys),
+      discoveredAt: new Date().toISOString(),
+    };
+  }
+
+  async getObjectDetails(name: string, _kind: 'table' | 'view' = 'table'): Promise<ObjectDetails> {
+    const catalog = await this.getCatalog();
+    const obj = catalog.objects.find((o) => o.name === name);
+    if (!obj) throw new Error(`Object not found: ${name}`);
+    return buildObjectDetails(this, {
+      name,
+      kind: obj.kind,
+      columns: obj.columns,
+      foreignKeys: catalog.foreignKeys.filter((fk) => fk.fromTable === name || fk.toTable === name),
+      indexes: catalog.indexes.filter((i) => i.tableName === name),
+      constraints: catalog.constraints.filter((c) => c.tableName === name),
+    });
+  }
+
   async getExplainPlan(sql: string): Promise<RawExplainResult> {
     if (!this.conn) await this.connect();
     const statement = this.stripTrailingSemicolon(sql);
@@ -181,4 +352,11 @@ export class DuckdbDriver extends BaseDriver {
       };
     }
   }
+}
+
+function normalizeCols(v: unknown): string[] {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.map(String);
+  const s = String(v).replace(/^[{\[]|[}\]]$/g, '');
+  return s.split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
 }

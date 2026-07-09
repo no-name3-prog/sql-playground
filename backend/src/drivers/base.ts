@@ -6,6 +6,7 @@ import type {
   TableSchema,
 } from '../types/index.js';
 import type { RawExplainResult } from '../types/analysis.js';
+import type { ObjectDetails, SchemaCatalog } from '../types/schema.js';
 
 export const DEFAULT_MAX_ROWS = 1000;
 
@@ -34,11 +35,13 @@ export abstract class BaseDriver {
   abstract execute(sql: string, maxRows?: number): Promise<QueryResult>;
   abstract getSchema(): Promise<SchemaInfo>;
   abstract testConnection(): Promise<boolean>;
-
-  /**
-   * Return a raw execution plan for the given SQL (without running the query for side effects when possible).
-   */
   abstract getExplainPlan(sql: string): Promise<RawExplainResult>;
+
+  /** Full catalog for interactive schema explorer (tables, views, FKs, indexes, constraints, graph). */
+  abstract getCatalog(): Promise<SchemaCatalog>;
+
+  /** Metadata + sample rows + statistics for a table or view. */
+  abstract getObjectDetails(name: string, kind?: 'table' | 'view'): Promise<ObjectDetails>;
 
   isConnected(): boolean {
     return this.connected;
@@ -89,9 +92,33 @@ export abstract class BaseDriver {
     });
   }
 
-  /** Strip trailing semicolon for EXPLAIN wrappers */
   protected stripTrailingSemicolon(sql: string): string {
     return sql.replace(/;\s*$/, '').trim();
+  }
+
+  protected quoteIdent(name: string): string {
+    return `"${name.replace(/"/g, '""')}"`;
+  }
+
+  protected buildGraph(
+    objects: { id: string; name: string; kind: 'table' | 'view'; columns: unknown[]; rowCount?: number | null }[],
+    foreignKeys: { id: string; name?: string; fromTable: string; toTable: string; fromColumns: string[]; toColumns: string[] }[]
+  ) {
+    const nodes = objects.map((o) => ({
+      id: o.id,
+      label: o.name,
+      kind: o.kind,
+      columnCount: o.columns.length,
+      rowCount: o.rowCount ?? null,
+    }));
+    const edges = foreignKeys.map((fk) => ({
+      id: `edge-${fk.id}`,
+      from: `table:${fk.fromTable}`,
+      to: `table:${fk.toTable}`,
+      label: `${fk.fromColumns.join(',')} → ${fk.toColumns.join(',')}`,
+      fkId: fk.id,
+    }));
+    return { nodes, edges };
   }
 }
 

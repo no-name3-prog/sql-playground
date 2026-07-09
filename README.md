@@ -34,6 +34,27 @@ Ideal for learning query planning, teaching performance, and iterating on indexe
 - **Dark / light** themes (persisted)  
 - Resizable editor / results split  
 
+
+### Interactive schema explorer
+
+Automatically discovers:
+
+- Tables & columns (types, nullability, primary keys)
+- Foreign keys, indexes, constraints
+- Views (when present)
+
+Open **Schema** in the header (or **Graph** in the sidebar) for:
+
+- **Relationship graph** — interactive nodes/edges for FK links
+- **Object details** — metadata, sample rows, and column statistics on select
+
+API:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/schema/:connectionId/catalog` | Full catalog + graph |
+| `GET` | `/api/schema/:connectionId/objects/:name` | Details, sample, stats |
+
 ### Multi-engine backend
 Modular driver architecture (`BaseDriver`) with first-class support for:
 

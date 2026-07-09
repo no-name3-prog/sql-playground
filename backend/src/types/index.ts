@@ -111,3 +111,17 @@ export type {
   RecommendationType,
   RecommendationSeverity,
 } from './optimization.js';
+
+export type {
+  CatalogColumn,
+  ForeignKeyMeta,
+  IndexMeta,
+  ConstraintMeta,
+  CatalogObject,
+  SchemaCatalog,
+  SchemaGraphNode,
+  SchemaGraphEdge,
+  ObjectDetails,
+  ObjectStatistics,
+  ColumnStats,
+} from './schema.js';
