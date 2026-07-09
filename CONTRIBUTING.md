@@ -127,3 +127,20 @@ Use clear, complete sentences in commit messages (what + why).
 - Prefer small, reviewable PRs
 - Do not commit `node_modules`, built `dist/`, or secrets
 - Keep sample seed data deterministic for tests
+
+
+## Senior maintainer bot (auto-review & merge)
+
+After **CI succeeds** on a pull request, the **Maintainer** workflow runs as a highly experienced maintainer:
+
+1. Diff review (secrets, missing tests for drivers/analysis/schema, risky CI patterns)
+2. Posts a structured review comment (approve or request changes)
+3. If review is clean **and** `All checks passed` is green **and** the PR is not a draft → **squash-merges** into `main` and deletes the branch
+
+You do not need to merge manually when the bot is happy. If it blocks, fix the blockers and push — it will re-run after the next green CI.
+
+Manual re-run:
+
+```bash
+gh workflow run maintainer.yml -f pr_number=PR_NUMBER
+```
