@@ -110,7 +110,7 @@ sql-playground/
 ### Install & run
 
 ```bash
-git clone https://github.com/sarth-akvaish/sql-playground.git
+git clone https://github.com/no-name3-prog/sql-playground.git
 cd sql-playground
 npm run setup          # install root + backend + frontend, seed samples
 npm run dev            # API :3001  ·  UI :5173
@@ -351,4 +351,4 @@ Tips:
 
 ## Author
 
-**Sarthak Vaish** · [github.com/sarth-akvaish](https://github.com/sarth-akvaish)
+**Sarthak Vaish** · [github.com/no-name3-prog](https://github.com/no-name3-prog)
