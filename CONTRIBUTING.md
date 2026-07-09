@@ -15,6 +15,45 @@ npm run check   # typecheck + tests + build (all packages)
 
 `npm run check` is the same gate CI enforces (plus Docker build in GitHub Actions).
 
+
+## Branch policy (enforced on GitHub)
+
+**Direct pushes to `main` are blocked** for everyone (including admins).
+
+| Rule | Setting |
+|------|---------|
+| Require pull request | Yes |
+| Required CI check | `All checks passed` |
+| Branch must be up to date | Yes |
+| Force pushes | Disabled |
+| Branch deletion | Disabled |
+| Apply to admins | Yes |
+| Linear history | Yes |
+
+### Correct workflow
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feature/my-change
+
+# ... implement, then:
+npm run check
+
+git add -A
+git commit -m "Describe the change clearly"
+git push -u origin HEAD
+
+gh pr create --fill
+# wait for CI → merge via GitHub (squash/rebase as allowed)
+```
+
+Do **not**:
+
+```bash
+git push origin main   # rejected by branch protection
+```
+
 ## Development
 
 ```bash
