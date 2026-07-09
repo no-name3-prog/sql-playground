@@ -368,6 +368,8 @@ npm run check
 
 This mirrors CI (typecheck + tests + build). **Do not merge features without a green CI run.**
 
+**`main` is protected:** direct pushes are blocked. Open a pull request; CI must pass before merge. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow and PR checklist.
 
 ## License
