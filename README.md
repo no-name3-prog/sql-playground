@@ -372,6 +372,8 @@ This mirrors CI (typecheck + tests + build). **Do not merge features without a g
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow and PR checklist.
 
+**CI failure emails:** turn off under [GitHub → Settings → Notifications → Actions](https://github.com/settings/notifications) (account-level; see CONTRIBUTING).
+
 ## License
 
 [MIT](./LICENSE) © 2026 Sarthak Vaish
