@@ -10,7 +10,9 @@
     "sample": "tsx src/sample/seed.ts",
     "test": "tsx --test tests/**/*.test.ts tests/**/**/*.test.ts",
     "test:parsers": "tsx --test tests/parsers/**/*.test.ts",
-    "test:live": "tsx --test tests/analysis/live-engines.test.ts"
+    "test:live": "tsx --test tests/analysis/live-engines.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

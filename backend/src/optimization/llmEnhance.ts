@@ -123,9 +123,7 @@ Return ONLY a JSON array of 0-3 additional recommendations with shape:
           summary: `Estimated ${item.costReductionPercentMin ?? 5}–${item.costReductionPercentMax ?? 20}% plan cost reduction`,
           costReductionPercentMin: Number(item.costReductionPercentMin) || 5,
           costReductionPercentMax: Number(item.costReductionPercentMax) || 20,
-          confidence: ['low', 'medium', 'high'].includes(item.confidence)
-            ? item.confidence
-            : 'low',
+          confidence: sanitizeConfidence(item.confidence),
         },
         planReferences: refs,
         sqlAfter: item.sqlAfter ? String(item.sqlAfter) : undefined,
@@ -164,6 +162,15 @@ function sanitizeType(
   const v = String(t || '');
   if (v === 'index' || v === 'rewrite' || v === 'warning' || v === 'anti-pattern') return v;
   return 'warning';
+}
+
+
+function sanitizeConfidence(
+  c: unknown
+): 'low' | 'medium' | 'high' {
+  const v = String(c || '');
+  if (v === 'low' || v === 'medium' || v === 'high') return v;
+  return 'low';
 }
 
 function sanitizeSeverity(

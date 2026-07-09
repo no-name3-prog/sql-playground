@@ -10,7 +10,15 @@ export function ruleRedundantWork(ctx: PlanContext): OptimizationRecommendation[
   // Offset-heavy pagination anti-pattern
   if (sqlHints.hasOffset && sqlHints.hasOrderBy) {
     const sort = sorts.find((s) => s.costPercent >= 5 || s.isExpensive);
-    const refs = sort ? [toPlanRef(sort)] : analysis.expensive.slice(0, 2).map(toPlanRef);
+    const refs = sort
+      ? [toPlanRef(sort)]
+      : analysis.expensiveNodes.slice(0, 2).map((n) => ({
+          nodeId: n.id,
+          label: n.label,
+          category: n.category,
+          costPercent: n.costPercent,
+          detail: n.detail,
+        }));
     if (refs.length) {
       recs.push({
         id: uuid(),
@@ -22,7 +30,7 @@ export function ruleRedundantWork(ctx: PlanContext): OptimizationRecommendation[
         suggestion:
           'Switch to keyset/seek pagination: WHERE (sort_col, id) > (?, ?) ORDER BY sort_col, id LIMIT N.',
         why:
-          `Plan operators involved in ordering/scanning (${refs.map((r) => r.nodeId).join(', ')}) ` +
+          `Plan operators involved in ordering/scanning (${refs.map((ref) => ref.nodeId).join(', ')}) ` +
           `must still produce skipped rows for OFFSET. Keyset pagination bounds work per page.`,
         estimatedImprovement: {
           summary: 'Keyset pagination keeps per-page cost flat versus OFFSET growth',

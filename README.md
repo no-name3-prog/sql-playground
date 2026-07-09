@@ -343,6 +343,33 @@ Tips:
 
 ---
 
+
+---
+
+## Continuous Integration & quality gates
+
+Every push and pull request to `main` runs **GitHub Actions** (`.github/workflows/ci.yml`):
+
+| Check | What runs |
+|-------|-----------|
+| **Backend** | `typecheck` → `test` (all engines fixtures + live SQLite/DuckDB) → `build` |
+| **Frontend** | `typecheck` → production `build` |
+| **Docker** | Multi-stage production image build |
+| **All checks passed** | Aggregate job required before merge |
+| **Audit** | `npm audit` (informational) |
+
+### Local gate (run before any feature PR)
+
+```bash
+npm run check
+# or
+./scripts/check.sh
+```
+
+This mirrors CI (typecheck + tests + build). **Do not merge features without a green CI run.**
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow and PR checklist.
+
 ## License
 
 [MIT](./LICENSE) © 2026 Sarthak Vaish
