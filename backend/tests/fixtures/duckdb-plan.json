@@ -1,0 +1,6 @@
+[
+  {
+    "explain_key": "physical_plan",
+    "explain_value": "[{\"name\":\"PROJECTION\",\"children\":[{\"name\":\"PERFECT_HASH_GROUP_BY\",\"children\":[{\"name\":\"HASH_JOIN\",\"children\":[{\"name\":\"SEQ_SCAN\",\"children\":[],\"extra_info\":{\"Table\":\"users\",\"Type\":\"Sequential Scan\",\"Estimated Cardinality\":\"100\"}},{\"name\":\"SEQ_SCAN\",\"children\":[],\"extra_info\":{\"Table\":\"events\",\"Type\":\"Sequential Scan\",\"Estimated Cardinality\":\"1000\"}}],\"extra_info\":{\"Join Type\":\"INNER\",\"Conditions\":\"id = user_id\",\"Estimated Cardinality\":\"500\"}}],\"extra_info\":{\"Groups\":\"#0\",\"Aggregates\":\"count_star()\",\"Estimated Cardinality\":\"50\"}}],\"extra_info\":{\"Estimated Cardinality\":\"50\"}}]"
+  }
+]

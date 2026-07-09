@@ -1,0 +1,5 @@
+[
+  { "id": 7, "parent": 0, "notused": 216, "detail": "SCAN o" },
+  { "id": 9, "parent": 0, "notused": 45, "detail": "SEARCH c USING INTEGER PRIMARY KEY (rowid=?)" },
+  { "id": 12, "parent": 0, "notused": 0, "detail": "USE TEMP B-TREE FOR GROUP BY" }
+]

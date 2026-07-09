@@ -1,0 +1,34 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": { "query_cost": "25.50" },
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": { "sort_cost": "10.00" },
+      "nested_loop": [
+        {
+          "table": {
+            "table_name": "customers",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 100,
+            "rows_produced_per_join": 100,
+            "filtered": 100,
+            "cost_info": { "read_cost": "5.00", "eval_cost": "2.00" }
+          }
+        },
+        {
+          "table": {
+            "table_name": "orders",
+            "access_type": "ref",
+            "possible_keys": ["customer_id"],
+            "key": "customer_id",
+            "rows_examined_per_scan": 5,
+            "rows_produced_per_join": 500,
+            "filtered": 100,
+            "cost_info": { "read_cost": "3.00", "eval_cost": "5.00" }
+          }
+        }
+      ]
+    }
+  }
+}

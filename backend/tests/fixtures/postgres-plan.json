@@ -1,0 +1,61 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Aggregate",
+      "Strategy": "Hashed",
+      "Partial Mode": "Simple",
+      "Parallel Aware": false,
+      "Startup Cost": 45.0,
+      "Total Cost": 48.5,
+      "Plan Rows": 10,
+      "Plan Width": 40,
+      "Group Key": ["c.name"],
+      "Plans": [
+        {
+          "Node Type": "Hash Join",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Join Type": "Inner",
+          "Startup Cost": 22.0,
+          "Total Cost": 40.0,
+          "Plan Rows": 200,
+          "Plan Width": 40,
+          "Hash Cond": "(o.customer_id = c.id)",
+          "Plans": [
+            {
+              "Node Type": "Seq Scan",
+              "Parent Relationship": "Outer",
+              "Relation Name": "orders",
+              "Alias": "o",
+              "Startup Cost": 0.0,
+              "Total Cost": 15.0,
+              "Plan Rows": 500,
+              "Plan Width": 12
+            },
+            {
+              "Node Type": "Hash",
+              "Parent Relationship": "Inner",
+              "Startup Cost": 10.0,
+              "Total Cost": 12.0,
+              "Plan Rows": 100,
+              "Plan Width": 28,
+              "Plans": [
+                {
+                  "Node Type": "Seq Scan",
+                  "Parent Relationship": "Outer",
+                  "Relation Name": "customers",
+                  "Alias": "c",
+                  "Startup Cost": 0.0,
+                  "Total Cost": 10.0,
+                  "Plan Rows": 100,
+                  "Plan Width": 28
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "Planning Time": 0.2
+  }
+]

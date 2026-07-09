@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+backend/data/*.db
+backend/data/*.duckdb
+backend/data/*.db-*
+coverage
+.vite
+**/*.md
+!README.md

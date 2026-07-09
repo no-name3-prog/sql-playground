@@ -1,0 +1,36 @@
+services:
+  sql-playground:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sql-playground:latest
+    container_name: sql-playground
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      SERVE_STATIC: "true"
+      DATA_DIR: /app/backend/data
+      # Optional LLM optimization enrichment:
+      # XAI_API_KEY: ${XAI_API_KEY:-}
+      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      # Persist sample / user file databases
+      - sql-playground-data:/app/backend/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  sql-playground-data:
